@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GameShell, GameTopbar, GameAuth } from "@freegamestore/games";
-import { Grid, type Puzzle, type CellGrid } from "./puzzle";
+import { Grid, type BoardState, type Puzzle } from "./puzzle";
 import { dailyPuzzle, localDateKey, msUntilLocalMidnight } from "./puzzle/daily";
 import { loadProgress, saveProgress } from "./puzzle/progress";
 import { submitDailyTime } from "./puzzle/leaderboard";
@@ -39,12 +39,14 @@ function DailyBoard({ puzzle, dateKey }: DailyBoardProps) {
   const [solveMs, setSolveMs] = useState<number | undefined>(saved?.solvedMs);
   // Refs, not state: they are read by the save and solve handlers, and changing them must not re-render.
   const startedAt = useRef<number | null>(saved?.startedAt ?? null);
-  const latest = useRef<CellGrid | undefined>(saved?.cells);
+  const latest = useRef<BoardState | undefined>(
+    saved && { cells: saved.cells, hint: saved.hint ?? null, hintUsed: saved.hintUsed ?? false },
+  );
 
-  function handleChange(cells: CellGrid) {
+  function handleChange(board: BoardState) {
     if (startedAt.current === null) startedAt.current = Date.now();
-    latest.current = cells;
-    saveProgress(puzzle.id, { cells, startedAt: startedAt.current, solvedMs: solveMs });
+    latest.current = board;
+    saveProgress(puzzle.id, { ...board, startedAt: startedAt.current, solvedMs: solveMs });
   }
 
   function handleSolved() {
@@ -52,7 +54,7 @@ function DailyBoard({ puzzle, dateKey }: DailyBoardProps) {
     if (solveMs !== undefined || startedAt.current === null || !latest.current) return;
     const ms = Date.now() - startedAt.current;
     setSolveMs(ms);
-    saveProgress(puzzle.id, { cells: latest.current, startedAt: startedAt.current, solvedMs: ms });
+    saveProgress(puzzle.id, { ...latest.current, startedAt: startedAt.current, solvedMs: ms });
     void submitDailyTime(dateKey, ms);
   }
 
@@ -63,6 +65,8 @@ function DailyBoard({ puzzle, dateKey }: DailyBoardProps) {
         colClues={puzzle.colClues}
         solution={puzzle.solution}
         initialCells={saved?.cells}
+        initialHint={saved?.hint ?? null}
+        initialHintUsed={saved?.hintUsed ?? false}
         onChange={handleChange}
         onSolved={handleSolved}
       />

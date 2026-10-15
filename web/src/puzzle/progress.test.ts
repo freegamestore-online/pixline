@@ -20,6 +20,18 @@ describe("progress", () => {
     expect(loadProgress("daily-a", size)?.solvedMs).toBe(4200);
   });
 
+  it("keeps the hint and whether it was used", () => {
+    saveProgress("daily-a", { ...saved, hint: { row: 2, col: 3 }, hintUsed: true });
+    const loaded = loadProgress("daily-a", size);
+    expect(loaded?.hint).toEqual({ row: 2, col: 3 });
+    expect(loaded?.hintUsed).toBe(true);
+  });
+
+  it("ignores a hint outside the board", () => {
+    localStorage.setItem(progressKey("daily-a"), JSON.stringify({ ...saved, hint: { row: 9, col: 0 } }));
+    expect(loadProgress("daily-a", size)).toBeNull();
+  });
+
   it("ignores progress saved for a different size", () => {
     saveProgress("daily-a", saved);
     expect(loadProgress("daily-a", 7)).toBeNull();

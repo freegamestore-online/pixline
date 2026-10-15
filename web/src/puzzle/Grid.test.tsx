@@ -15,7 +15,7 @@ const cell = (r: number, c: number) => screen.getByRole("button", { name: `Row $
 describe("Grid", () => {
   it("renders an NxN board with a clue for every row and column", () => {
     renderGrid();
-    expect(screen.getAllByRole("button")).toHaveLength(25);
+    expect(screen.getAllByRole("button", { name: /^Row \d+, column \d+$/ })).toHaveLength(25);
     expect(puzzle.rowClues.length).toBe(5);
     expect(puzzle.colClues.length).toBe(5);
   });
@@ -73,7 +73,7 @@ describe("Grid saved state", () => {
     expect(cell(0, 1)).toHaveAttribute("data-state", "filled");
     fireEvent.click(cell(0, 0));
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange.mock.calls[0]![0][0][0]).toBe(1);
+    expect(onChange.mock.calls[0]![0].cells[0][0]).toBe(1);
   });
 
   it("does not report solved again for a board that loads solved", () => {
@@ -83,5 +83,115 @@ describe("Grid saved state", () => {
       <Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} initialCells={saved} onSolved={onSolved} />,
     );
     expect(onSolved).not.toHaveBeenCalled();
+  });
+});
+
+const solutionFilled = (r: number, c: number) => puzzle.solution[r]![c] === 1;
+
+describe("Grid undo and redo", () => {
+  it("undoes and redoes a tap with the buttons", () => {
+    renderGrid();
+    fireEvent.click(cell(0, 0));
+    expect(cell(0, 0)).toHaveAttribute("data-state", "filled");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(cell(0, 0)).toHaveAttribute("data-state", "unknown");
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(cell(0, 0)).toHaveAttribute("data-state", "filled");
+  });
+
+  it("undoes with Ctrl+Z and redoes with Ctrl+Y", () => {
+    renderGrid();
+    fireEvent.click(cell(0, 0));
+    fireEvent.click(cell(0, 0));
+    expect(cell(0, 0)).toHaveAttribute("data-state", "empty");
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(cell(0, 0)).toHaveAttribute("data-state", "filled");
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    expect(cell(0, 0)).toHaveAttribute("data-state", "empty");
+  });
+
+  it("redoes with Ctrl+Shift+Z and Cmd+Z undoes", () => {
+    renderGrid();
+    fireEvent.click(cell(1, 1));
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(cell(1, 1)).toHaveAttribute("data-state", "unknown");
+    fireEvent.keyDown(window, { key: "Z", ctrlKey: true, shiftKey: true });
+    expect(cell(1, 1)).toHaveAttribute("data-state", "filled");
+    fireEvent.keyDown(window, { key: "z", metaKey: true });
+    expect(cell(1, 1)).toHaveAttribute("data-state", "unknown");
+  });
+
+  it("disables Undo until there is something to undo", () => {
+    renderGrid();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    fireEvent.click(cell(0, 0));
+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+  });
+
+  it("reports undone boards so they can be saved", () => {
+    const onChange = vi.fn();
+    render(<Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} onChange={onChange} />);
+    fireEvent.click(cell(0, 0));
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last.cells[0][0]).toBe(0);
+  });
+});
+
+describe("Grid mistake check", () => {
+  it("is off by default, so wrong fills look normal", () => {
+    renderGrid();
+    const wrong = puzzle.solution.flatMap((row, r) => row.map((v, c) => (v === 0 ? [r, c] : null))).find(Boolean)!;
+    fireEvent.click(cell(wrong[0]!, wrong[1]!));
+    expect(cell(wrong[0]!, wrong[1]!)).not.toHaveAttribute("data-mistake");
+    expect(screen.getByRole("button", { name: "Mistakes off" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("marks wrong fills red when turned on, and only those", () => {
+    renderGrid();
+    const wrongCell = puzzle.solution.flatMap((row, r) => row.map((v, c) => (v === 0 ? [r, c] : null))).find(Boolean)!;
+    fireEvent.click(cell(wrongCell[0]!, wrongCell[1]!));
+    fireEvent.click(screen.getByRole("button", { name: "Mistakes off" }));
+    expect(cell(wrongCell[0]!, wrongCell[1]!)).toHaveAttribute("data-mistake", "true");
+    // A correct fill is not a mistake.
+    const rightCell = puzzle.solution.flatMap((row, r) => row.map((v, c) => (v === 1 ? [r, c] : null))).find(Boolean)!;
+    fireEvent.click(cell(rightCell[0]!, rightCell[1]!));
+    expect(cell(rightCell[0]!, rightCell[1]!)).not.toHaveAttribute("data-mistake");
+  });
+});
+
+describe("Grid hint", () => {
+  it("highlights one cell the solution fills, and only once", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    const hinted = screen.getAllByRole("button").filter((b) => b.getAttribute("data-hint") === "true");
+    expect(hinted).toHaveLength(1);
+    const [r, c] = hinted[0]!.getAttribute("aria-label")!.match(/\d+/g)!.map((n) => Number(n) - 1);
+    expect(solutionFilled(r!, c!)).toBe(true);
+    expect(screen.getByRole("button", { name: "Hint used" })).toBeDisabled();
+  });
+
+  it("saves that the hint was used", () => {
+    const onChange = vi.fn();
+    render(<Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last.hintUsed).toBe(true);
+    expect(last.hint).not.toBeNull();
+  });
+
+  it("stays used after a reload, and does not give a second hint", () => {
+    render(
+      <Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} initialHintUsed />,
+    );
+    expect(screen.getByRole("button", { name: "Hint used" })).toBeDisabled();
+  });
+
+  it("clears the highlight once that cell is filled", () => {
+    renderGrid();
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    const hinted = screen.getAllByRole("button").find((b) => b.getAttribute("data-hint") === "true")!;
+    fireEvent.click(hinted);
+    expect(screen.queryAllByRole("button").some((b) => b.getAttribute("data-hint") === "true")).toBe(false);
   });
 });

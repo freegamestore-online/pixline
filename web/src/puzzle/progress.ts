@@ -1,4 +1,5 @@
 import type { Grid } from "./solver";
+import type { CellRef } from "./assist";
 
 // Progress is saved per puzzle, so a refresh resumes the same board and timer.
 // Storage can be missing or full (private mode, quota), so every access is
@@ -13,6 +14,10 @@ export interface SavedProgress {
   startedAt: number | null;
   /** Solve time in ms, set once when the puzzle is first solved. */
   solvedMs?: number;
+  /** The hint cell still on screen, if any. */
+  hint?: CellRef | null;
+  /** True once the puzzle's one hint has been used. Kept so a refresh cannot get a second. */
+  hintUsed?: boolean;
 }
 
 /** Storage key for a puzzle. */
@@ -54,6 +59,22 @@ function isSavedProgress(value: unknown, size: number): value is SavedProgress {
     p.cells.length === size &&
     p.cells.every((row) => Array.isArray(row) && row.length === size && row.every((c) => c === 0 || c === 1 || c === 2)) &&
     (p.startedAt === null || Number.isFinite(p.startedAt)) &&
-    (p.solvedMs === undefined || Number.isFinite(p.solvedMs))
+    (p.solvedMs === undefined || Number.isFinite(p.solvedMs)) &&
+    (p.hint === undefined || p.hint === null || isCellRef(p.hint, size)) &&
+    (p.hintUsed === undefined || typeof p.hintUsed === "boolean")
+  );
+}
+
+function isCellRef(value: unknown, size: number): value is CellRef {
+  const ref = value as CellRef;
+  return (
+    typeof ref === "object" &&
+    ref !== null &&
+    Number.isInteger(ref.row) &&
+    Number.isInteger(ref.col) &&
+    ref.row >= 0 &&
+    ref.row < size &&
+    ref.col >= 0 &&
+    ref.col < size
   );
 }
