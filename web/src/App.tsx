@@ -1,20 +1,26 @@
 import { GameShell, GameTopbar, GameAuth } from "@freegamestore/games";
+import { Grid, PUZZLES } from "./puzzle";
+
+const puzzle = PUZZLES[0]!;
 
 export default function App() {
   return (
     <GameShell topbar={<GameTopbar title="Pixline" score={0} />}>
       <GameAuth />
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <h1
-          className="text-3xl font-bold"
-          style={{ fontFamily: "Fraunces, serif" }}
-        >
-          Pixline
+      <main className="mx-auto flex h-full w-full max-w-md flex-col items-center justify-center gap-4 p-4">
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Fraunces, serif" }}>
+          {puzzle.name}
         </h1>
-        <p style={{ color: "var(--muted)" }}>
-          Your game will appear here once it&rsquo;s built.
-        </p>
-      </div>
+        <div className="w-full">
+          <Grid
+            key={puzzle.id}
+            rowClues={puzzle.rowClues}
+            colClues={puzzle.colClues}
+            solution={puzzle.solution}
+            onSolved={() => console.log("Solved!")}
+          />
+        </div>
+      </main>
     </GameShell>
   );
 }

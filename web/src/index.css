@@ -80,3 +80,16 @@ body {
   height: 100%;
   overflow: hidden;
 }
+
+/* A clue whose row or column is already satisfied fades out. */
+.clue {
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  transition: opacity 0.2s ease;
+}
+
+.clue-done {
+  opacity: 0.3;
+}
