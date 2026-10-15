@@ -43,7 +43,7 @@ export default defineConfig({
       manifest: {
         name: "Pixline",
         short_name: "Pixline",
-        description: "Pixline — free forever",
+        description: "Reveal a hidden picture from its clues. Free, forever, no tracking.",
         start_url: "/",
         display: "standalone",
         background_color: "#0f0f0f",

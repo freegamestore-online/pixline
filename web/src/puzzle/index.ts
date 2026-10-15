@@ -10,3 +10,6 @@ export type { Grid as CellGrid } from "./solver";
 export * from "./history";
 export * from "./assist";
 export type { BoardState } from "./Grid";
+export * from "./zoom";
+export * from "./celebrate";
+export { ZoomArea } from "./ZoomArea";

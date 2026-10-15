@@ -195,3 +195,33 @@ describe("Grid hint", () => {
     expect(screen.queryAllByRole("button").some((b) => b.getAttribute("data-hint") === "true")).toBe(false);
   });
 });
+
+describe("Grid completion feedback", () => {
+  it("marks a solved board so the picture reveals, and sets a stagger on each cell", () => {
+    const { container } = render(
+      <Grid
+        rowClues={puzzle.rowClues}
+        colClues={puzzle.colClues}
+        solution={puzzle.solution}
+        initialCells={puzzle.solution.map((row) => row.map((v) => (v === 1 ? 1 : 0)))}
+      />,
+    );
+    expect(container.querySelector(".puzzle-grid")).toHaveClass("solved");
+    expect(cell(0, 0).style.getPropertyValue("--delay")).toBe("0ms");
+    expect(cell(2, 2).style.getPropertyValue("--delay")).toBe("140ms");
+  });
+
+  it("is not marked solved while the picture is incomplete", () => {
+    renderGrid();
+    expect(document.querySelector(".puzzle-grid")).not.toHaveClass("solved");
+  });
+
+  it("sweeps a shimmer on a clue the moment it becomes satisfied", () => {
+    const { container } = render(<Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} />);
+    // Row 2 of the heart is "#####": filling all five cells satisfies its clue.
+    const rowClue = () => container.querySelectorAll(".clue")[puzzle.size + 1]!;
+    for (let c = 0; c < 5; c++) fireEvent.click(cell(1, c));
+    expect(rowClue()).toHaveClass("clue-done");
+    expect(rowClue()).toHaveClass("clue-shimmer");
+  });
+});

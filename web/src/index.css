@@ -83,6 +83,8 @@ body {
 
 /* A clue whose row or column is already satisfied fades out. */
 .clue {
+  position: relative;
+  overflow: hidden;
   color: var(--ink);
   font-size: 0.75rem;
   font-weight: 600;
@@ -92,4 +94,66 @@ body {
 
 .clue-done {
   opacity: 0.3;
+}
+
+/* A clue that has just become satisfied sweeps a light band across once. */
+.clue-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, var(--accent) 50%, transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: clue-sweep 0.7s ease-out;
+}
+
+@keyframes clue-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* A filled cell pops: it swells a little, then settles. */
+.cell[data-state="filled"] {
+  animation: fill-pop 0.18s ease-out;
+}
+
+@keyframes fill-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* When the picture is solved, each filled cell eases in, in a wave from the top-left. */
+.puzzle-grid.solved .cell[data-state="filled"] {
+  animation: picture-reveal 0.48s ease-out both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes picture-reveal {
+  from {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell[data-state="filled"],
+  .puzzle-grid.solved .cell[data-state="filled"],
+  .clue-shimmer::after {
+    animation: none;
+  }
 }

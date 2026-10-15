@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { EMPTY, FILLED, runsOf, UNKNOWN, type Clue, type Grid as Cells } from "./solver";
 import { canRedo, canUndo, commit, redo, startHistory, undo, type History } from "./history";
 import { mistakes, pickHint, type CellRef } from "./assist";
+import { ParticleLayer, type ParticleLayerHandle } from "../feel/ParticleLayer";
+import { CELEBRATION_COLOURS, celebrationBursts } from "./celebrate";
+import { ZoomArea } from "./ZoomArea";
 
 export interface GridProps {
   rowClues: Clue[];
@@ -38,6 +41,27 @@ function clueLabel(clue: Clue): number[] {
   return clue.length > 0 ? clue : [0];
 }
 
+/** A row or column clue. It dims once satisfied, and sweeps a shimmer the moment it becomes satisfied. */
+function ClueLabel({ runs, done, style }: { runs: Clue; done: boolean; style: CSSProperties }) {
+  const wasDone = useRef(done);
+  const [shimmering, setShimmering] = useState(false);
+  useEffect(() => {
+    if (done && !wasDone.current) setShimmering(true);
+    wasDone.current = done;
+  }, [done]);
+  return (
+    <div
+      className={`clue ${done ? "clue-done" : ""} ${shimmering ? "clue-shimmer" : ""}`}
+      style={style}
+      onAnimationEnd={() => setShimmering(false)}
+    >
+      {clueLabel(runs).map((n, i) => (
+        <span key={i}>{n}</span>
+      ))}
+    </div>
+  );
+}
+
 const toolbarButton = {
   minHeight: 44,
   minWidth: 44,
@@ -69,12 +93,22 @@ export function Grid({ rowClues, colClues, solution, onSolved, initialCells, ini
   );
   const solved = cells.every((row, r) => row.every((cell, c) => (cell === FILLED) === (solution[r]![c] === 1)));
   const wrong = useMemo(() => mistakes(solution, cells), [solution, cells]);
+  const celebrate = useRef<ParticleLayerHandle>(null);
+  const root = useRef<HTMLDivElement>(null);
 
   // Fire once per transition into the solved state. A board that loads already
   // solved was solved earlier, so it does not fire again.
   const wasSolved = useRef(solved);
   useEffect(() => {
-    if (solved && !wasSolved.current) onSolved?.();
+    if (solved && !wasSolved.current) {
+      onSolved?.();
+      const el = root.current;
+      if (el) {
+        for (const burst of celebrationBursts(el.clientWidth, el.clientHeight)) {
+          celebrate.current?.burst(burst.x, burst.y, CELEBRATION_COLOURS, burst.options);
+        }
+      }
+    }
     wasSolved.current = solved;
   }, [solved, onSolved]);
 
@@ -128,7 +162,8 @@ export function Grid({ rowClues, colClues, solution, onSolved, initialCells, ini
   const hintDisabled = hintUsed || solved || pickHint(solution, cells) === null;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div ref={root} className="relative flex w-full flex-col items-center gap-3">
+      <ParticleLayer ref={celebrate} />
       <div className="flex flex-wrap items-center justify-center gap-2" role="toolbar" aria-label="Board tools">
         <button type="button" onClick={doUndo} disabled={!canUndo(history)} style={toolbarButton} className="disabled:opacity-40">
           Undo
@@ -149,33 +184,28 @@ export function Grid({ rowClues, colClues, solution, onSolved, initialCells, ini
         </button>
       </div>
 
+      <ZoomArea>
       <div
-        className="puzzle-grid"
+        className={`puzzle-grid ${solved ? "solved" : ""}`}
         style={{ display: "grid", gridTemplateColumns: `auto repeat(${size}, minmax(0, 1fr))`, gap: 2, userSelect: "none", width: "100%" }}
       >
         <div />
         {colClues.map((clue, c) => (
-          <div
+          <ClueLabel
             key={`col-${c}`}
-            className={`clue ${colDone[c] ? "clue-done" : ""}`}
+            runs={clue}
+            done={colDone[c]!}
             style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", padding: "0 2px 4px" }}
-          >
-            {clueLabel(clue).map((n, i) => (
-              <span key={i}>{n}</span>
-            ))}
-          </div>
+          />
         ))}
 
         {cells.map((row, r) => (
           <div key={`row-${r}`} style={{ display: "contents" }}>
-            <div
-              className={`clue ${rowDone[r] ? "clue-done" : ""}`}
+            <ClueLabel
+              runs={rowClues[r] ?? []}
+              done={rowDone[r]!}
               style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, padding: "0 4px" }}
-            >
-              {clueLabel(rowClues[r] ?? []).map((n, i) => (
-                <span key={i}>{n}</span>
-              ))}
-            </div>
+            />
             {row.map((cell, c) => {
               const mistake = showMistakes && wrong[r]![c];
               const isHint = hintCell?.row === r && hintCell?.col === c;
@@ -190,6 +220,8 @@ export function Grid({ rowClues, colClues, solution, onSolved, initialCells, ini
                   onClick={() => tap(r, c)}
                   className="cell"
                   style={{
+                    // Reveal the picture in a wave from the top-left corner.
+                    ["--delay" as string]: `${(r + c) * 35}ms`,
                     aspectRatio: "1 / 1",
                     minWidth: 0,
                     minHeight: 0,
@@ -210,6 +242,7 @@ export function Grid({ rowClues, colClues, solution, onSolved, initialCells, ini
           </div>
         ))}
       </div>
+      </ZoomArea>
     </div>
   );
 }

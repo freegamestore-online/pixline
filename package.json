@@ -2,6 +2,7 @@
   "name": "pixline",
   "private": true,
   "packageManager": "pnpm@10.30.3",
+  "description": "Free daily nonogram: reveal a hidden picture from its row and column clues.",
   "engines": { "node": ">=22" },
   "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
   "scripts": {

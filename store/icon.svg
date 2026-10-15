@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2563eb"/>
+  <rect x="160" y="160" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="200" y="160" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="240" y="160" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="280" y="160" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="320" y="160" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="160" y="200" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="200" y="200" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="240" y="200" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="280" y="200" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="320" y="200" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="160" y="240" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="200" y="240" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="240" y="240" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="280" y="240" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="320" y="240" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="160" y="280" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="200" y="280" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="240" y="280" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="280" y="280" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="320" y="280" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="160" y="320" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="200" y="320" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="240" y="320" width="32" height="32" rx="6" fill="#ffffff"/>
+  <rect x="280" y="320" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="320" y="320" width="32" height="32" rx="6" fill="#ffffff" fill-opacity="0.18"/>
+</svg>
