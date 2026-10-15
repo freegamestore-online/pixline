@@ -62,3 +62,26 @@ describe("Grid", () => {
     expect(rowClue()).toHaveClass("clue-done");
   });
 });
+
+describe("Grid saved state", () => {
+  it("resumes from saved cells and reports each change", () => {
+    const onChange = vi.fn();
+    const saved = puzzle.solution.map((row) => row.map((v) => (v === 1 ? 1 : 0)));
+    render(
+      <Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} initialCells={saved} onChange={onChange} />,
+    );
+    expect(cell(0, 1)).toHaveAttribute("data-state", "filled");
+    fireEvent.click(cell(0, 0));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0]![0][0][0]).toBe(1);
+  });
+
+  it("does not report solved again for a board that loads solved", () => {
+    const onSolved = vi.fn();
+    const saved = puzzle.solution.map((row) => row.map((v) => (v === 1 ? 1 : 0)));
+    render(
+      <Grid rowClues={puzzle.rowClues} colClues={puzzle.colClues} solution={puzzle.solution} initialCells={saved} onSolved={onSolved} />,
+    );
+    expect(onSolved).not.toHaveBeenCalled();
+  });
+});

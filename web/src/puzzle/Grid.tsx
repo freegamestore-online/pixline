@@ -8,6 +8,10 @@ export interface GridProps {
   solution: Cells;
   /** Called once each time the board first matches the solution. */
   onSolved?: () => void;
+  /** Saved cell states to resume from. Defaults to an empty board. */
+  initialCells?: Cells;
+  /** Called with the new cell states after every tap. */
+  onChange?: (cells: Cells) => void;
 }
 
 /** Tap cycles a cell: empty → filled → X → empty. */
@@ -22,9 +26,11 @@ function clueLabel(clue: Clue): number[] {
   return clue.length > 0 ? clue : [0];
 }
 
-export function Grid({ rowClues, colClues, solution, onSolved }: GridProps) {
+export function Grid({ rowClues, colClues, solution, onSolved, initialCells, onChange }: GridProps) {
   const size = solution.length;
-  const [cells, setCells] = useState<Cells>(() => Array.from({ length: size }, () => new Array(size).fill(UNKNOWN)));
+  const [cells, setCells] = useState<Cells>(
+    () => initialCells ?? Array.from({ length: size }, () => new Array(size).fill(UNKNOWN)),
+  );
 
   const rowDone = useMemo(
     () => cells.map((row, r) => sameRuns(runsOf(row), rowClues[r] ?? [])),
@@ -36,15 +42,18 @@ export function Grid({ rowClues, colClues, solution, onSolved }: GridProps) {
   );
   const solved = cells.every((row, r) => row.every((cell, c) => (cell === FILLED) === (solution[r]![c] === 1)));
 
-  // Fire once per transition into the solved state, not on every render while solved.
-  const wasSolved = useRef(false);
+  // Fire once per transition into the solved state. A board that loads already
+  // solved was solved earlier, so it does not fire again.
+  const wasSolved = useRef(solved);
   useEffect(() => {
     if (solved && !wasSolved.current) onSolved?.();
     wasSolved.current = solved;
   }, [solved, onSolved]);
 
   function tap(r: number, c: number) {
-    setCells((current) => current.map((row, ri) => (ri === r ? row.map((cell, ci) => (ci === c ? next(cell) : cell)) : row)));
+    const updated = cells.map((row, ri) => (ri === r ? row.map((cell, ci) => (ci === c ? next(cell) : cell)) : row));
+    setCells(updated);
+    onChange?.(updated);
   }
 
   return (
